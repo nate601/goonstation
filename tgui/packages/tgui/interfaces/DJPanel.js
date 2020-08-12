@@ -5,15 +5,16 @@
  * @license ISC
  */
 
+import { toFixed } from 'common/math';
 import { useBackend } from '../backend';
-import { Button, Divider, NoticeBox, Section, Box, Knob, AnimatedNumber, LabeledControls } from '../components';
+import { Button, Divider, NoticeBox, Section, Box, Knob, AnimatedNumber, LabeledControls, Icon, NumberInput } from '../components';
 import { Window } from '../layouts';
 
 export const DJPanel = (props, context) => {
   const { act, data } = useBackend(context);
-  const { loadedSound } = data;
+  const { loadedSound, adminChannel } = data;
   return (
-    <Window width={400} height={350} title="DJ Panel" resizable>
+    <Window width={430} height={305} title="DJ Panel" resizable>
       <Window.Content>
         <Section>
           <Box>
@@ -21,6 +22,7 @@ export const DJPanel = (props, context) => {
             <Button
               icon={loadedSound ? 'file-audio' : 'upload'}
               ellipsis
+              selected={!loadedSound}
               content={loadedSound ? loadedSound : "Upload"}
               onClick={() => act('set-file')}
             />
@@ -28,32 +30,34 @@ export const DJPanel = (props, context) => {
           <Divider />
           <KnobZone />
         </Section>
-        { loadedSound ? (
-          <Section>
-            <Box>
-              <Button
-                icon="music"
-                selected
-                content="Play Music"
-                onClick={() => act('play-music')}
-              />
-              <Button
-                icon="volume-up"
-                selected
-                content="Play Sound"
-                onClick={() => act('play-sound')}
-              />
-              <Button
-                icon="record-vinyl"
-                selected
-                content="Play Ambience"
-                onClick={() => act('play-ambience')}
-              />
+        <Section>
+          <Box>
+            <Button
+              icon="music"
+              selected={loadedSound}
+              disabled={!loadedSound}
+              content="Play Music"
+              onClick={() => act('play-music')}
+            />
+            <Button
+              icon="volume-up"
+              selected={loadedSound}
+              disabled={!loadedSound}
+              content="Play Sound"
+              onClick={() => act('play-sound')}
+            />
+            <Button
+              icon="record-vinyl"
+              selected={loadedSound}
+              disabled={!loadedSound}
+              content="Play Ambience"
+              onClick={() => act('play-ambience')}
+            />
+            <Box as="span" color="grey" textAlign="right" pl={1}>
+              <Icon name="satellite" /> Channel: <em>{-({ adminChannel } - 1024)}</em>
             </Box>
-          </Section>
-        ) : (
-          <NothingLoaded />
-        )}
+          </Box>
+        </Section>
         <Section>
           <Box>
             <Button
@@ -63,8 +67,9 @@ export const DJPanel = (props, context) => {
             />
             <Button
               icon="podcast"
+              disabled={!loadedSound}
               content="Play To Player"
-              onClick={() => act('play-remote')}
+              onClick={() => act('play-player')}
             />
           </Box>
           <Box>
@@ -78,21 +83,21 @@ export const DJPanel = (props, context) => {
               icon="headphones"
               color="yellow"
               content="Toggle DJ For Player"
-              onClick={() => act('play-remote')}
+              onClick={() => act('toggle-player-dj')}
             />
           </Box>
           <Box>
             <Button
               icon="stop"
               color="red"
-              content="Stop Last Song"
-              onClick={() => act('play-remote')}
+              content="Stop Last Sound"
+              onClick={() => act('stop-sound')}
             />
             <Button
               icon="broadcast-tower"
               color="red"
               content="Stop The Radio For Everyone"
-              onClick={() => act('play-remote')}
+              onClick={() => act('stop-radio')}
             />
           </Box>
         </Section>
@@ -102,13 +107,6 @@ export const DJPanel = (props, context) => {
   );
 };
 
-const NothingLoaded = () => {
-  return (
-    <NoticeBox danger>
-      No song loaded!
-    </NoticeBox>
-  );
-};
 
 const AnnounceActive = (props, context) => {
   const { data } = useBackend(context);
@@ -117,7 +115,7 @@ const AnnounceActive = (props, context) => {
   if (announceMode) {
     return (
       <NoticeBox info>
-        Announce Mode On
+        Announce Mode enabled
       </NoticeBox>
     );
   }
@@ -125,69 +123,96 @@ const AnnounceActive = (props, context) => {
 
 const KnobZone = (props, context) => {
   const { act, data } = useBackend(context);
-  const { loadedSound, soundVol, soundFreq } = data;
+  const { loadedSound, volume, frequency } = data;
 
-  if (loadedSound) {
-    return (
-      <Box>
-        <LabeledControls>
-          <LabeledControls.Item label="Volume">
-            <AnimatedNumber
-              value={soundVol}
-            />
-          </LabeledControls.Item>
-          <LabeledControls.Item>
-            <Knob
-              minValue={0}
-              maxValue={100}
-              ranges={{
-                bad: [90, 100],
-                average: [70, 89],
-              }}
-              value={soundVol}
-              onDrag={(e, value) => act('set-volume', {
-                volume: value,
-              })}
-            />
-            <Button
-              icon="sync-alt"
-              top="0.3em"
-              content="Reset"
-              onClick={() => act('set-volume', {
-                volume: "reset",
-              })}
-            />
-          </LabeledControls.Item>
-          <LabeledControls.Item label="Frequency">
-            <AnimatedNumber
-              value={soundFreq + '00%'}
-            />
-          </LabeledControls.Item>
-          <LabeledControls.Item>
-            <Knob
-              minValue={-100}
-              maxValue={100}
-              ranges={{
-                bad: [-100, -50],
-                red: [50, 100],
-              }}
-              value={soundFreq}
-              unit="%"
-              onDrag={(e, value) => act('set-freq', {
-                frequency: value,
-              })}
-            />
-            <Button
-              icon="sync-alt"
-              top="0.3em"
-              content="Reset"
-              onClick={() => act('set-freq', {
-                frequency: "reset",
-              })}
-            />
-          </LabeledControls.Item>
-        </LabeledControls>
-      </Box>
-    );
-  }
+  return (
+    <Box>
+      <LabeledControls>
+        <LabeledControls.Item label="Volume">
+          <NumberInput
+            animated
+            value={volume}
+            minValue={0}
+            maxValue={100}
+            format={value => {
+              return toFixed(value * 2) + '%';
+            }}
+            onDrag={(e, value) => act('set-volume', {
+              volume: value,
+            })}
+          />
+        </LabeledControls.Item>
+        <LabeledControls.Item>
+          <Knob
+            minValue={0}
+            maxValue={100}
+            ranges={{
+              primary: [20, 80],
+              average: [10, 90],
+              bad: [0, 100],
+            }}
+            value={volume}
+            format={value => {
+              return toFixed(value * 2) + '%';
+            }}
+            onDrag={(e, value) => act('set-volume', {
+              volume: value,
+            })}
+          />
+          <Button
+            icon="sync-alt"
+            top="0.3em"
+            content="Reset"
+            onClick={() => act('set-volume', {
+              volume: "reset",
+            })}
+          />
+        </LabeledControls.Item>
+        <LabeledControls.Item label="Frequency">
+          <NumberInput
+            animated
+            value={frequency}
+            step={0.1}
+            minValue={-100}
+            maxValue={100}
+            format={value => {
+              return toFixed(value * 100) + '%';
+            }}
+            onDrag={(e, value) => act('set-freq', {
+              frequency: value,
+            })}
+          />
+        </LabeledControls.Item>
+        <LabeledControls.Item>
+          <Knob
+            disabled={!loadedSound}
+            minValue={-100}
+            maxValue={100}
+            step={0.1}
+            stepPixelSize={0.1}
+            ranges={{
+              primary: [-40, 40],
+              average: [-70, 70],
+              bad: [-100, 100],
+            }}
+            value={frequency}
+            format={value => {
+              return toFixed(value * 100) + '%';
+            }}
+            onDrag={(e, value) => act('set-freq', {
+              frequency: value,
+            })}
+          />
+          <Button
+            icon="sync-alt"
+            top="0.3em"
+            content="Reset"
+            onClick={() => act('set-freq', {
+              frequency: "reset",
+            })}
+          />
+        </LabeledControls.Item>
+      </LabeledControls>
+    </Box>
+  );
 };

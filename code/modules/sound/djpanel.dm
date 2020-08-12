@@ -8,7 +8,7 @@ client/proc/open_dj_panel()
 	SET_ADMIN_CAT(ADMIN_CAT_FUN)
 	if (!isadmin(src) && !src.non_admin_dj)
 		boutput(src, "Only administrators or those with access may use this command.")
-		return
+		return FALSE
 
 	global.dj_panel.ui_interact(src.mob)
 
@@ -45,6 +45,7 @@ client/proc/open_dj_panel()
 
 /datum/dj_panel/ui_data(mob/user)
 	var/list/data = list()
+	data["adminChannel"] = admin_sound_channel
 	data["loadedSound"] = "[loaded_sound]"
 	data["volume"] = sound_volume
 	data["frequency"] = sound_frequency
@@ -121,10 +122,12 @@ client/proc/open_dj_panel()
 			playsound(C.mob, loaded_sound, sound_volume, sound_frequency)
 
 		if("toggle-player-dj")
-			toggledj(input(usr, "Choose a client:", "Choose a client:") in clients)
+			var/dude = input(usr, "Choose a client:", "Choose a client:") in clients
+			if (!dude) return FALSE
+			toggledj(dude, usr)
 
 		if("stop-sound")
-			move_admin_sound_channel(backwards=TRUE)
+			move_admin_sound_channel(TRUE)
 			SPAWN_DBG(0)
 				var/sound/stopsound = sound(null, wait = 0, channel=admin_sound_channel)
 				for (var/client/C in clients)
@@ -138,28 +141,13 @@ client/proc/open_dj_panel()
 				for (var/client/C in clients)
 					C << stopsound
 					LAGCHECK(LAG_MED)
-			. = TRUE
 
-/*
-
-
-
-
-
-
-		html += "<strong>Current Sound Channel:</strong> [template("admin_channel", admin_sound_channel)]<br><hr><br>"
-
-
-
-
-
-*/
 
 /** Moves the global admin sound channel up or down one
  *
  * @param backwards - Moves it backwards if true
  */
-/datum/dj_panel/proc/move_admin_sound_channel(var/backwards = FALSE)
+/datum/dj_panel/proc/move_admin_sound_channel(backwards = FALSE)
 	if (backwards)
 		if (admin_sound_channel > 1014)
 			admin_sound_channel--
@@ -176,7 +164,7 @@ client/proc/open_dj_panel()
  * @param C - Client to toggle the DJ Mode of
  * @param who - The client who toggled the DJ Mode
  */
-/datum/dj_panel/proc/toggledj(var/client/C, var/client/who)
+/datum/dj_panel/proc/toggledj(client/C, client/who)
 	C.non_admin_dj = !C.non_admin_dj
 	if (C.non_admin_dj)
 		C.verbs += /client/proc/open_dj_panel
