@@ -6,8 +6,9 @@
  */
 
 import { toFixed } from 'common/math';
+import { truncate } from '../format.js';
 import { useBackend } from '../backend';
-import { Button, Divider, NoticeBox, Section, Box, Knob, AnimatedNumber, LabeledControls, Icon, NumberInput } from '../components';
+import { Button, Divider, NoticeBox, Section, Box, Knob, LabeledControls, Icon, NumberInput } from '../components';
 import { Window } from '../layouts';
 
 export const DJPanel = (props, context) => {
@@ -23,7 +24,7 @@ export const DJPanel = (props, context) => {
               icon={loadedSound ? 'file-audio' : 'upload'}
               ellipsis
               selected={!loadedSound}
-              content={loadedSound ? loadedSound : "Upload"}
+              content={loadedSound ? truncate(loadedSound) : "Upload"}
               onClick={() => act('set-file')}
             />
           </Box>
@@ -61,12 +62,10 @@ export const DJPanel = (props, context) => {
         <Section>
           <Box>
             <Button
-              icon="satellite-dish"
               content="Play Remote"
               onClick={() => act('play-remote')}
             />
             <Button
-              icon="podcast"
               disabled={!loadedSound}
               content="Play To Player"
               onClick={() => act('play-player')}
@@ -74,13 +73,11 @@ export const DJPanel = (props, context) => {
           </Box>
           <Box>
             <Button
-              icon="bullhorn"
               color="yellow"
               content="Toggle DJ Announcements"
               onClick={() => act('toggle-announce')}
             />
             <Button
-              icon="headphones"
               color="yellow"
               content="Toggle DJ For Player"
               onClick={() => act('toggle-player-dj')}
@@ -115,7 +112,7 @@ const AnnounceActive = (props, context) => {
   if (announceMode) {
     return (
       <NoticeBox info>
-        Announce Mode enabled
+        Announce Mode Enabled
       </NoticeBox>
     );
   }
